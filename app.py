@@ -678,7 +678,7 @@ def build_app() -> gr.Blocks:
     V0 = assumptions_to_values(A0)
     G0 = dict(zip(GFIELDS, V0[-len(GFIELDS):]))
 
-    with gr.Blocks(title="PE Portfolio Optimization Simulator") as demo:
+    with gr.Blocks(title="PE Portfolio Optimization Simulator", css=CSS, theme=gr.themes.Soft(primary_hue="blue", neutral_hue="slate")) as demo:
         gr.HTML('<div class="app-title"><h1>Private Equity Portfolio Optimization Simulator</h1>'
                 '<p>Case Challenge 3.0 · SKELAR × Horizon Capital × Mastercard · $15M of capital, '
                 '$33M of requests, one intensive programme, exit within 24 months. All values in $ millions. '
@@ -906,4 +906,4 @@ def build_app() -> gr.Blocks:
 demo = build_app()
 
 if __name__ == "__main__":
-    demo.launch(css=CSS, theme=gr.themes.Soft(primary_hue="blue", neutral_hue="slate"))
+    demo.launch()
