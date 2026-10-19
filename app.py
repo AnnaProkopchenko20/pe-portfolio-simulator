@@ -1,16 +1,16 @@
 """
 Private Equity Portfolio Optimization Simulator
 Case Challenge 3.0 (SKELAR x Horizon Capital x Mastercard)
-
-Gradio front-end. All financial logic lives in financial_model.py and
-optimizer.py; this file only collects inputs and renders outputs.
-Every interaction triggers deterministic local calculations.
 """
 from __future__ import annotations
 
 import html
+import os
 import traceback
 from pathlib import Path
+
+# Disable Gradio experimental Node.js SSR worker before importing Gradio
+os.environ["GRADIO_SSR"] = "0"
 
 import gradio as gr
 import numpy as np
@@ -74,9 +74,6 @@ FIN_CHOICES = [("Fixed ownership / non-dilutive support — illustrative assumpt
                ("New equity at an adjustable pre-money valuation (dilution)", "equity")]
 
 
-# ---------------------------------------------------------------------------
-# Assumptions <-> UI values
-# ---------------------------------------------------------------------------
 def scenario_frame(a: ModelAssumptions) -> pd.DataFrame:
     rows = []
     for k in COMPANY_KEYS:
@@ -175,9 +172,6 @@ def values_to_assumptions(vals: list) -> ModelAssumptions:
     )
 
 
-# ---------------------------------------------------------------------------
-# HTML helpers
-# ---------------------------------------------------------------------------
 def kpi(label: str, value: str, sub: str = "", tone: str = "") -> str:
     return (f'<div class="kpi {tone}"><div class="kpi-label">{label}</div>'
             f'<div class="kpi-value">{value}</div><div class="kpi-sub">{sub}</div></div>')
@@ -211,14 +205,10 @@ def clamp_alloc(x1, x2, x3) -> dict[str, float]:
     return {"ecom": float(x1 or 0), "it": float(x2 or 0), "sec": float(x3 or 0)}
 
 
-# ---------------------------------------------------------------------------
-# Core recompute
-# ---------------------------------------------------------------------------
 N_MAIN = 14
 
 
 def compute_main(mode, x1, x2, x3, focus, bscen, prev, vals):
-    """Returns the tuple of simulator outputs (N_MAIN items)."""
     alloc = clamp_alloc(x1, x2, x3)
     total = sum(alloc.values())
     reserve = CASE_BUDGET - total
@@ -251,7 +241,7 @@ def compute_main(mode, x1, x2, x3, focus, bscen, prev, vals):
         out = list(facts_outputs(msg))
         out[13] = notice("error", [str(e)])
         return tuple(out)
-    except Exception as e:  # pragma: no cover - defensive
+    except Exception as e:
         traceback.print_exc()
         out = list(facts_outputs(banner(mode) + notice("error", [f"Unexpected error: {e}"])))
         return tuple(out)
@@ -281,7 +271,7 @@ def compute_main(mode, x1, x2, x3, focus, bscen, prev, vals):
 
     rows = []
     for k in COMPANY_KEYS:
-        ce = lambda f, b=False: res.company_expected(k, f, b)  # noqa: E731
+        ce = lambda f, b=False: res.company_expected(k, f, b)
         inc = ce("proceeds") - ce("proceeds", True)
         rows.append({
             "Company": NAMES[k] + (" ★" if k == focus else ""),
@@ -321,7 +311,6 @@ def compute_main(mode, x1, x2, x3, focus, bscen, prev, vals):
 
     breakdown = calculation_breakdown(a, res, bscen or "base")
 
-    # why-it-changed: bridge vs no-investment + delta vs previous allocation
     br_lines = ["#### Value bridge vs no-investment counterfactual (expected, fund share, $M)",
                 "Attribution order: EBITDA → multiple → net debt → ownership.",
                 "| Company | EBITDA effect | Multiple (risk) effect | Net-debt effect | Ownership effect | = Additional proceeds | − Capital | = Net benefit |",
@@ -351,7 +340,6 @@ def compute_main(mode, x1, x2, x3, focus, bscen, prev, vals):
                         "fund proceeds exceed the extra capital it received.")
     bridge_md = "\n".join(br_lines)
 
-    # Chart 3 / 4 comparison rows: no investment, current, optimized (expected net, any focus)
     zero = evaluate_portfolio(a, {k: 0.0 for k in COMPANY_KEYS}, focus)
     try:
         opt = optimize(a, "expected_net", focus=None, step=0.25, max_list=1)
@@ -366,9 +354,6 @@ def compute_main(mode, x1, x2, x3, focus, bscen, prev, vals):
             notice("ok", ["Assumptions valid. " + ILLUSTRATIVE_LABEL + " (all values in this tab)."]))
 
 
-# ---------------------------------------------------------------------------
-# Event handlers
-# ---------------------------------------------------------------------------
 def on_change(mode, x1, x2, x3, focus, bscen, prev, *vals):
     return compute_main(mode, x1, x2, x3, focus, bscen, prev, list(vals))
 
@@ -379,7 +364,6 @@ def make_slider_handler(idx: int):
         others = sum(xs) - xs[idx]
         upd = [gr.update(), gr.update(), gr.update()]
         if sum(xs) > CASE_BUDGET + EPS:
-            # Cap THIS slider at the remaining budget; never touch the others.
             capped = max(np.floor((CASE_BUDGET - others) / 0.25 + EPS) * 0.25, 0.0)
             xs[idx] = capped
             upd[idx] = gr.update(value=capped)
@@ -397,7 +381,6 @@ def reset_facts(x1, x2, x3, focus, bscen, prev, *vals):
     return (MODE_FACTS, *compute_main(MODE_FACTS, x1, x2, x3, focus, bscen, prev, list(vals)))
 
 
-# --- Optimization ----------------------------------------------------------
 def run_optimizer(mode, x1, x2, x3, focus, objective, opt_focus, step, min_roi, *vals):
     if mode == MODE_FACTS:
         msg = ('<div class="banner facts"><b>No optimum from case facts alone.</b> The case does not say how '
@@ -523,7 +506,6 @@ def apply_optimal(opt_state, mode, x1, x2, x3, focus, bscen, prev, *vals):
             *compute_main(mode, al["ecom"], al["it"], al["sec"], fc, bscen, prev, list(vals)))
 
 
-# --- Sensitivity --------------------------------------------------------------
 SENS_CHOICES = [(v["label"], k) for k, v in SENS_PARAMS.items()]
 
 
@@ -609,9 +591,6 @@ def run_breakeven(mode, *vals):
     return charts.standalone_curves(a, probs), "\n".join(lines)
 
 
-# ---------------------------------------------------------------------------
-# Static content
-# ---------------------------------------------------------------------------
 def overview_table() -> pd.DataFrame:
     rows = []
     for k, c in CASE_COMPANIES.items():
@@ -635,7 +614,10 @@ def challenge_cards() -> str:
     return f'<div class="co-row">{"".join(out)}</div>'
 
 
-METHODOLOGY = (Path(__file__).parent / "METHODOLOGY.md").read_text(encoding="utf-8")
+try:
+    METHODOLOGY = (Path(__file__).parent / "METHODOLOGY.md").read_text(encoding="utf-8")
+except Exception:
+    METHODOLOGY = "## Methodology\nRefer to case documentation for detailed calculations."
 
 CSS = """
 .gradio-container {max-width: 1400px !important; margin: 0 auto;}
@@ -670,15 +652,12 @@ CSS = """
 """
 
 
-# ---------------------------------------------------------------------------
-# UI
-# ---------------------------------------------------------------------------
 def build_app() -> gr.Blocks:
     A0 = illustrative_assumptions()
     V0 = assumptions_to_values(A0)
     G0 = dict(zip(GFIELDS, V0[-len(GFIELDS):]))
 
-    with gr.Blocks(title="PE Portfolio Optimization Simulator", css=CSS, theme=gr.themes.Soft(primary_hue="blue", neutral_hue="slate"), ssr=False) as demo:
+    with gr.Blocks(title="PE Portfolio Optimization Simulator", css=CSS, theme=gr.themes.Soft(primary_hue="blue", neutral_hue="slate")) as demo:
         gr.HTML('<div class="app-title"><h1>Private Equity Portfolio Optimization Simulator</h1>'
                 '<p>Case Challenge 3.0 · SKELAR × Horizon Capital × Mastercard · $15M of capital, '
                 '$33M of requests, one intensive programme, exit within 24 months. All values in $ millions. '
@@ -692,7 +671,6 @@ def build_app() -> gr.Blocks:
         prev_state = gr.State(None)
         opt_state = gr.State(None)
 
-        # ---------------- TAB 1
         with gr.Tab("1 · Portfolio overview"):
             gr.Markdown("#### Case facts (hardcoded from the case datapack, $M)")
             gr.Dataframe(overview_table(), interactive=False, wrap=True)
@@ -708,7 +686,6 @@ def build_app() -> gr.Blocks:
                 "net debt, the e-commerce liquidity amount, or the financing instrument. These are the assumptions "
                 "the simulator makes explicit.")
 
-        # ---------------- TAB 2
         with gr.Tab("2 · Capital allocation simulator"):
             head_html = gr.HTML()
             with gr.Row():
@@ -740,7 +717,6 @@ def build_app() -> gr.Blocks:
                                  label="Step-by-step calculation for scenario")
                 breakdown_md = gr.Markdown()
 
-        # ---------------- TAB 3
         comps: dict[str, list] = {}
         with gr.Tab("3 · Financial assumptions"):
             assume_status = gr.HTML()
@@ -752,7 +728,8 @@ def build_app() -> gr.Blocks:
                             "*Exit net debt* excludes the new capital, which is assumed spent on the programme. "
                             "*Effectiveness* scales how much of the designed response is delivered. "
                             "*Extra delay* adds months to implementation in that scenario.")
-                scen_table = gr.Dataframe(value=V0[3 * len(CFIELDS)], headers=SCEN_COLUMNS, interactive=True, label="Scenario assumptions")
+                scen_table = gr.Dataframe(value=V0[3 * len(CFIELDS)], headers=SCEN_COLUMNS, interactive=True,
+                                          label="Scenario assumptions")
                 with gr.Row():
                     p_down = gr.Number(value=G0["p_down"], label="P(Downside) %", minimum=0, maximum=100)
                     p_base = gr.Number(value=G0["p_base"], label="P(Base) %", minimum=0, maximum=100)
@@ -813,7 +790,6 @@ def build_app() -> gr.Blocks:
                     nonfocus_cap, time_saving, liq_req, liq_deadline, haircut, extra_debt]
         assumption_inputs = comps["ecom"] + comps["it"] + comps["sec"] + [scen_table] + globals_
 
-        # ---------------- TAB 4
         with gr.Tab("4 · Optimization"):
             gr.HTML('<div class="banner sim">The optimizer finds the best allocation <b>under the assumptions you '
                     'have entered</b>. It cannot find a real-world objectively optimal allocation from the case data '
@@ -835,7 +811,6 @@ def build_app() -> gr.Blocks:
             near_df = gr.Dataframe(label="Near-optimal allocations (within tolerance of the best score)",
                                    interactive=False, wrap=True)
 
-        # ---------------- TAB 5
         with gr.Tab("5 · Risk & sensitivity"):
             gr.HTML('<div class="banner sim">Sensitivity results are conditional financial calculations, not proof '
                     'of the future. They show which assumptions change the recommendation.</div>')
@@ -865,11 +840,9 @@ def build_app() -> gr.Blocks:
                 be_plot = gr.Plot()
                 be_md = gr.Markdown()
 
-        # ---------------- TAB 6
         with gr.Tab("6 · Methodology"):
             gr.Markdown(METHODOLOGY)
 
-        # ---------------- wiring
         main_outputs = [head_html, kpi_html, results_df, scen_df, breakdown_md, bridge_md, plot_alloc,
                         plot_inv, plot_port, plot_scen, plot_time, preview, prev_state, assume_status]
         assert len(main_outputs) == N_MAIN
@@ -878,7 +851,7 @@ def build_app() -> gr.Blocks:
         def with_scen2(fn):
             def wrapped(*args):
                 out = fn(*args)
-                return (*out, out[-N_MAIN + 9])   # duplicate scenario chart into tab 5
+                return (*out, out[-N_MAIN + 9])
             return wrapped
 
         all_out = main_outputs + [plot_scen2]
