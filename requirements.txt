@@ -1,0 +1,5 @@
+gradio>=5.0
+plotly>=5.20
+numpy>=1.26
+pandas>=2.1
+pytest>=8.0
