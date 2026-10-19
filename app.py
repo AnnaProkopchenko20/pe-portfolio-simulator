@@ -752,8 +752,7 @@ def build_app() -> gr.Blocks:
                             "*Exit net debt* excludes the new capital, which is assumed spent on the programme. "
                             "*Effectiveness* scales how much of the designed response is delivered. "
                             "*Extra delay* adds months to implementation in that scenario.")
-                scen_table = gr.Dataframe(value=V0[3 * len(CFIELDS)], headers=SCEN_COLUMNS, interactive=True,
-                                          static_columns=[0, 1], label="Scenario assumptions")
+                scen_table = gr.Dataframe(value=V0[3 * len(CFIELDS)], headers=SCEN_COLUMNS, interactive=True, label="Scenario assumptions")
                 with gr.Row():
                     p_down = gr.Number(value=G0["p_down"], label="P(Downside) %", minimum=0, maximum=100)
                     p_base = gr.Number(value=G0["p_base"], label="P(Base) %", minimum=0, maximum=100)
