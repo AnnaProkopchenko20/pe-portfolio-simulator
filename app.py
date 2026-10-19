@@ -9,8 +9,9 @@ import os
 import traceback
 from pathlib import Path
 
-# Disable Gradio experimental Node.js SSR worker before importing Gradio
-os.environ["GRADIO_SSR"] = "0"
+# Disable Gradio's experimental Node.js SSR server (it crashes on Hugging Face Spaces).
+# The correct variable name is GRADIO_SSR_MODE; launch(ssr_mode=False) below is the explicit switch.
+os.environ["GRADIO_SSR_MODE"] = "false"
 
 import gradio as gr
 import numpy as np
@@ -879,4 +880,4 @@ def build_app() -> gr.Blocks:
 demo = build_app()
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(ssr_mode=False)
