@@ -17,6 +17,25 @@ import gradio as gr
 import numpy as np
 import pandas as pd
 
+# --- Gradio slider fix ---------------------------------------------------------
+# After the server updates a slider (budget cap, "apply optimal"), the browser sends
+# its value back as text, e.g. '7.0', and Gradio's own bounds check then crashes with
+# "'<' not supported between instances of 'str' and 'int'". Accept numeric text.
+_orig_slider_preprocess = gr.Slider.preprocess
+
+
+def _slider_preprocess(self, payload):
+    if isinstance(payload, str):
+        try:
+            payload = float(payload)
+        except ValueError:
+            payload = None
+    return _orig_slider_preprocess(self, payload)
+
+
+gr.Slider.preprocess = _slider_preprocess
+# -------------------------------------------------------------------------------
+
 import charts
 from assumptions import (
     CASE_BUDGET,
@@ -365,7 +384,7 @@ def make_slider_handler(idx: int):
         others = sum(xs) - xs[idx]
         upd = [gr.update(), gr.update(), gr.update()]
         if sum(xs) > CASE_BUDGET + EPS:
-            capped = max(np.floor((CASE_BUDGET - others) / 0.25 + EPS) * 0.25, 0.0)
+            capped = float(max(np.floor((CASE_BUDGET - others) / 0.25 + EPS) * 0.25, 0.0))
             xs[idx] = capped
             upd[idx] = gr.update(value=capped)
         out = compute_main(mode, *xs, focus, bscen, prev, list(vals))
@@ -503,8 +522,9 @@ def apply_optimal(opt_state, mode, x1, x2, x3, focus, bscen, prev, *vals):
         return (gr.update(), gr.update(), gr.update(), gr.update(),
                 *compute_main(mode, x1, x2, x3, focus, bscen, prev, list(vals)))
     al, fc = opt_state["alloc"], opt_state["focus"]
-    return (al["ecom"], al["it"], al["sec"], fc,
-            *compute_main(mode, al["ecom"], al["it"], al["sec"], fc, bscen, prev, list(vals)))
+    e, i, c = float(al["ecom"]), float(al["it"]), float(al["sec"])
+    return (e, i, c, fc,
+            *compute_main(mode, e, i, c, fc, bscen, prev, list(vals)))
 
 
 SENS_CHOICES = [(v["label"], k) for k, v in SENS_PARAMS.items()]
@@ -620,6 +640,8 @@ try:
 except Exception:
     METHODOLOGY = "## Methodology\nRefer to case documentation for detailed calculations."
 
+GRADIO_6 = int(gr.__version__.split(".")[0]) >= 6
+
 CSS = """
 .gradio-container {max-width: 1400px !important; margin: 0 auto;}
 .app-title h1 {font-size: 1.55rem; margin-bottom: 0;}
@@ -653,12 +675,16 @@ CSS = """
 """
 
 
+THEME = gr.themes.Soft(primary_hue="blue", neutral_hue="slate")
+
+
 def build_app() -> gr.Blocks:
     A0 = illustrative_assumptions()
     V0 = assumptions_to_values(A0)
     G0 = dict(zip(GFIELDS, V0[-len(GFIELDS):]))
 
-    with gr.Blocks(title="PE Portfolio Optimization Simulator", css=CSS, theme=gr.themes.Soft(primary_hue="blue", neutral_hue="slate")) as demo:
+    blocks_kwargs = {} if GRADIO_6 else {"css": CSS, "theme": THEME}
+    with gr.Blocks(title="PE Portfolio Optimization Simulator", **blocks_kwargs) as demo:
         gr.HTML('<div class="app-title"><h1>Private Equity Portfolio Optimization Simulator</h1>'
                 '<p>Case Challenge 3.0 · SKELAR × Horizon Capital × Mastercard · $15M of capital, '
                 '$33M of requests, one intensive programme, exit within 24 months. All values in $ millions. '
@@ -880,4 +906,6 @@ def build_app() -> gr.Blocks:
 demo = build_app()
 
 if __name__ == "__main__":
-    demo.launch(ssr_mode=False)
+    # share=True prints a public https://xxxx.gradio.live link (valid ~72 h, only while this script runs)
+    launch_kwargs = {"theme": THEME, "css": CSS} if GRADIO_6 else {}
+    demo.launch(share=True, **launch_kwargs)
