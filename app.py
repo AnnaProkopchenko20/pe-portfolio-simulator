@@ -10,7 +10,6 @@ import traceback
 from pathlib import Path
 
 # Disable Gradio's experimental Node.js SSR server (it crashes on Hugging Face Spaces).
-# The correct variable name is GRADIO_SSR_MODE; launch(ssr_mode=False) below is the explicit switch.
 os.environ["GRADIO_SSR_MODE"] = "false"
 
 import gradio as gr
@@ -18,9 +17,6 @@ import numpy as np
 import pandas as pd
 
 # --- Gradio slider fix ---------------------------------------------------------
-# After the server updates a slider (budget cap, "apply optimal"), the browser sends
-# its value back as text, e.g. '7.0', and Gradio's own bounds check then crashes with
-# "'<' not supported between instances of 'str' and 'int'". Accept numeric text.
 _orig_slider_preprocess = gr.Slider.preprocess
 
 
@@ -718,9 +714,9 @@ def build_app() -> gr.Blocks:
             with gr.Row():
                 with gr.Column(scale=4, min_width=320):
                     gr.Markdown("#### Allocate the $15M")
-                    x1 = gr.Slider(0, 10, value=5, step=0.25, label="E-commerce ($M, request $10M)")
-                    x2 = gr.Slider(0, 8, value=3, step=0.25, label="IT Engineering ($M, request $8M)")
-                    x3 = gr.Slider(0, 15, value=7, step=0.25, label="Security Hardware ($M, request $15M)")
+                    x1 = gr.Slider(0, 10, value=10, step=0.25, label="E-commerce ($M, request $10M)")
+                    x2 = gr.Slider(0, 8, value=0, step=0.25, label="IT Engineering ($M, request $8M)")
+                    x3 = gr.Slider(0, 15, value=3, step=0.25, label="Security Hardware ($M, request $15M)")
                     focus = gr.Radio(FOCUS_CHOICES, value="ecom", label="PRIMARY MANAGEMENT FOCUS (only one)",
                                      info="The focus company gets the focus effectiveness multiplier; the other two "
                                           "receive limited/defensive support up to the non-focus cap.")
@@ -904,8 +900,8 @@ def build_app() -> gr.Blocks:
 
 
 demo = build_app()
-
 if __name__ == "__main__":
-    # share=True prints a public https://xxxx.gradio.live link (valid ~72 h, only while this script runs)
+    import os
+    port = int(os.environ.get("PORT", 10000))
     launch_kwargs = {"theme": THEME, "css": CSS} if GRADIO_6 else {}
-    demo.launch(share=True, **launch_kwargs)
+    demo.launch(server_name="0.0.0.0", server_port=port, share=False, **launch_kwargs)
