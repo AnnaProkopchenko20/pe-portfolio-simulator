@@ -197,18 +197,18 @@ def illustrative_assumptions() -> ModelAssumptions:
     companies = {
         "ecom": CompanyAssumptions(
             response=ResponseSpec(
-                shape="threshold", full_effect_investment=9.0, threshold=4.0,
-                jump=0.5, below_threshold=0.05, curvature=0.3, midpoint=5.0,
+                shape="threshold", full_effect_investment=10.0, threshold=6.0,
+                jump=0.65, below_threshold=0.0, curvature=0.3, midpoint=5.0,
                 steepness=1.0,
                 custom_points=[(2.0, 0.05), (4.0, 0.5), (6.0, 0.75), (9.0, 1.0)],
-                max_ebitda_uplift=14.0, max_multiple_uplift=0.5,
+                max_ebitda_uplift=13.0, max_multiple_uplift=0.0,
             ),
             timing=TimingSpec(start_month=0, implementation_months=4,
                               benefit_lag_months=2, ramp_months=6, partial_credit=0.0),
             scenarios={
-                "downside": ScenarioInputs(10.0, 5.0, 45.0, 0.7, 3),
-                "base":     ScenarioInputs(16.0, 6.0, 35.0, 1.0, 0),
-                "upside":   ScenarioInputs(22.0, 7.0, 30.0, 1.1, 0),
+                "downside": ScenarioInputs(0.0, 4.0, 35.0, 0.7, 3),
+                "base":     ScenarioInputs(12.0, 5.0, 35.0, 1.0, 0),
+                "upside":   ScenarioInputs(18.0, 6.0, 35.0, 1.1, 0),
             },
             pre_money_equity=37.0,   # = 12 x 6.0 - 35
         ),
@@ -218,31 +218,31 @@ def illustrative_assumptions() -> ModelAssumptions:
                 threshold=2.0, jump=0.3, below_threshold=0.0, midpoint=4.0,
                 steepness=1.0,
                 custom_points=[(2.0, 0.4), (4.0, 0.65), (8.0, 1.0)],
-                max_ebitda_uplift=10.0, max_multiple_uplift=0.75,
+                max_ebitda_uplift=1.5, max_multiple_uplift=0.0,
             ),
             timing=TimingSpec(start_month=1, implementation_months=12,
                               benefit_lag_months=1, ramp_months=6, partial_credit=0.25),
             scenarios={
                 "downside": ScenarioInputs(14.0, 6.0, 0.0, 0.6, 4),
-                "base":     ScenarioInputs(19.0, 7.0, -5.0, 1.0, 0),
-                "upside":   ScenarioInputs(23.0, 8.0, -10.0, 1.15, 0),
+                "base":     ScenarioInputs(19.0, 7.0, 0.0, 1.0, 0),
+                "upside":   ScenarioInputs(23.0, 8.0, 0.0, 1.15, 0),
             },
             pre_money_equity=151.0,  # = 21.6 x 7.0 - 0
         ),
         "sec": CompanyAssumptions(
             response=ResponseSpec(
-                shape="s_curve", full_effect_investment=15.0, midpoint=8.0,
+                shape="custom", full_effect_investment=15.0, midpoint=8.0,
                 steepness=0.8, curvature=0.3, threshold=6.0, jump=0.4,
                 below_threshold=0.0,
-                custom_points=[(5.0, 0.1), (8.0, 0.5), (12.0, 0.9), (15.0, 1.0)],
-                max_ebitda_uplift=5.0, max_multiple_uplift=1.5,
+                custom_points=[(2.75, 0.0), (3.0, 0.35), (7.5, 0.35), (12.0, 0.65), (15.0, 1.0)],
+                max_ebitda_uplift=0.0, max_multiple_uplift=1.2,
             ),
             timing=TimingSpec(start_month=1, implementation_months=15,
                               benefit_lag_months=2, ramp_months=6, partial_credit=0.5),
             scenarios={
-                "downside": ScenarioInputs(60.0, 6.0, 15.0, 0.6, 4),
-                "base":     ScenarioInputs(75.0, 7.5, 5.0, 1.0, 0),
-                "upside":   ScenarioInputs(88.0, 9.0, 0.0, 1.15, 0),
+                "downside": ScenarioInputs(60.0, 6.0, 10.0, 0.6, 4),
+                "base":     ScenarioInputs(75.0, 7.5, 10.0, 1.0, 0),
+                "upside":   ScenarioInputs(88.0, 9.0, 10.0, 1.15, 0),
             },
             pre_money_equity=477.5,  # = 65 x 7.5 - 10
         ),
