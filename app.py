@@ -902,6 +902,9 @@ def build_app() -> gr.Blocks:
 demo = build_app()
 if __name__ == "__main__":
     import os
+    os.environ["NO_PROXY"] = "localhost,127.0.0.1,0.0.0.0,::1"
+    os.environ["no_proxy"] = "localhost,127.0.0.1,0.0.0.0,::1"
+    
     port = int(os.environ.get("PORT", 10000))
     launch_kwargs = {"theme": THEME, "css": CSS} if GRADIO_6 else {}
     demo.launch(server_name="0.0.0.0", server_port=port, share=False, **launch_kwargs)

@@ -10,3 +10,7 @@ services:
         value: 3.11.0
       - key: GRADIO_SERVER_NAME
         value: "0.0.0.0"
+      - key: GRADIO_SERVER_PORT
+        value: "10000"
+      - key: NO_PROXY
+        value: "localhost,127.0.0.1,0.0.0.0,::1"
