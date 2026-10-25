@@ -1,0 +1,32 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Gradio temporary files & cache
+.gradio/
+
+# Python byte-code & cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest & testing cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Environment variables & secrets
+.env
+*.local
+
+# IDE & Code Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
